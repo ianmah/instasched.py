@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+  <head>
+    <meta charset="utf-8">
+    <title>Schedule a post</title>
+    <link rel="stylesheet" type="text/css" href="{{ url_for('static',filename='styles.css') }}"/>
+    <!-- <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script> -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/2.1.3/jquery.min.js"></script>
+  </head>
+  <body>
+    <form method="POST" enctype=multipart/form-data>
+        <!-- <input type="url" name="url" id="url" required> -->
+        <!-- <input class="filedrop" type=file name=file required><br> -->
+        <div class="upload">
+          <input class="filedrop" name=file type=file>
+          <p>Drag your files here or click in this area.</p>
+        </div>
+
+        <input name="text" required><br>
+        <!-- <input type="date" name="schedule-date" required><br> -->
+        <input type="datetime-local" name="time" required><br>
+        <button type="submit">Submit</button>
+    </form>
+    <!-- <script src="{{ url_for('static',filename='upload.js') }}"></script> -->
+    <script>
+      $(document).ready(function(){
+        $('form input').change(function () {
+          $('form p').text(this.files.length + " file(s) selected");
+          console.log(this.files)
+        });
+      });
+    </script>
+  </body>
+</html>
