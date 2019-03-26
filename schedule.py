@@ -1,13 +1,11 @@
 from flask import (Flask, request, abort, jsonify, redirect, render_template)
 from flask_celery import make_celery
 import arrow
-import uuid
 import json
 import codecs
 import logging
 from customimg import Img
 from werkzeug.utils import secure_filename
-# import tweepy
 from dotenv import load_dotenv
 load_dotenv()
 import os
@@ -17,22 +15,12 @@ from instagram_private_api import (
     __version__ as client_version)
 
 # personal information
-# consumer_key = os.getenv("CONSUMER_KEY")
-# consumer_secret = os.getenv("CONSUMER_SECRET")
-# access_token = os.getenv("ACCESS_TOKEN")
-# access_token_secret = os.getenv("ACCESS_TOKEN_SECRET")
 INSTA_USER = os.getenv("INSTA_USER")
 INSTA_PW = os.getenv("INSTA_PW")
 CREDENTIALS_JSON = "test_credentials.json"
 
-# auth = tweepy.OAuthHandler(consumer_key, consumer_secret)
-# auth.set_access_token(access_token, access_token_secret)
-#
-# twitter = tweepy.API(auth)
-
 app = Flask(__name__)
 app.config['CELERY_BROKER_URL'] = 'amqp://localhost//'
-# app.config['CELERY_BACKEND'] = ''
 
 celery = make_celery(app)
 
@@ -54,7 +42,6 @@ def onlogin_callback(api, new_settings_file):
     with open(new_settings_file, 'w') as outfile:
         json.dump(cache_settings, outfile, default=to_json)
         print('SAVED: {0!s}'.format(new_settings_file))
-
 
 logging.basicConfig()
 logger = logging.getLogger('instagram_private_api')
@@ -112,8 +99,6 @@ except Exception as e:
 UPLOAD_FOLDER = './uploads'
 ALLOWED_EXTENSIONS = set(['jpg', 'jpeg', 'png'])
 
-posts = {}
-
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
 def allowed_file(filename):
@@ -141,45 +126,39 @@ def process():
         filename = secure_filename(file.filename)
         file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
         input['filename'] = filename
-        id = str(uuid.uuid4())
         input['id'] = id
         post = handleInput(input)
 
-        createPost.apply_async([post], eta=post['time'])
-        # print(posts)
-        # createPost.delay(post)
+        # createPost.apply_async([post], eta=post['time'])
+        # createPost(post)
+        createPost.delay(post)
     return 'Success'
 
 def handleInput(input):
     post = {}
-    post['name']=input['text']
+    post['name']=input['text'][0]
     post['time']=input['time'][0]
     post['file']=input['filename']
     post['timezone']='US/Pacific'
-    # json_data = json.dumps(post)
 
     post['time'] = arrow.get(post['time']).replace(tzinfo=post['timezone'])
     # print('Created:', post.time)
     print(post['time'].humanize())
     post['time'] = arrow.get(post['time']).to('utc').naive
-    # createPost.apply_async(args=post, eta=post.time)
-
-    posts[input['id']] = post
     return post
 
 @celery.task(name='schedule.createPost')
 def createPost(post):
-    # id = idv[0]
-    # post = posts[id]
+
     initImg = Img("./uploads/" + post['file'])
-    initImg.getImg().show()
+    # initImg.getImg().show()
+    initImg.getImg()
     size = initImg.size()
-    # print(size)
     imgByteArr = initImg.getByteArr()
-    instagram.post_photo(imgByteArr, size, caption=post['name'])
-    # twitter.update_status(status=string)
+    # instagram.post_photo(imgByteArr, size, caption=post['name'])
+    instagram.post_photo(imgByteArr, size)
     print('Posted image', post['name'])
-    posts[id] = None
+    return 'Posted'
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0')
